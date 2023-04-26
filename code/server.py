@@ -8,6 +8,14 @@ import pandas as pd
 from pathlib import Path
 import datetime
 
+from kazoo.client import KazooClient
+from kazoo.security import make_digest_acl_credential, make_acl
+
+import configparser
+import threading
+import time
+from glob import glob 
+
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def request(self, request, context):
@@ -59,14 +67,29 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
 
     def filewrite(self, request, context):
         print("Got request " + str(request))
-        # print(len(request.payload))
-        binary_file = open("writetest.csv", "wb")
+        binary_file = open("toload/writetest.csv", "wb")
         for i in request:
-            # print((i.payload))
             binary_file.write(i.payload)
+        x=threading.Thread(target=file_split,args=() )
+        x.start()
         return filesend_pb2.Route(id=1)
+    
+
+def file_split():
+    toloadfiles=(glob("./toload/*.csv"))
+    for toloadfile in toloadfiles:
+        df = pd.read_csv(toloadfile)
+        cols = df.columns
+        for i in set(df['Issue Date']): # for classified by years files
+            j=i
+            j=j.split("/")
+            j=j[2]+"-"+j[0]+"-"+j[1]
+            # i=str(i).replace("/","-")
+            filename = "./tomove/"+j+".csv"
+            print(filename)
+            df.loc[df['Issue Date'] == i].to_csv(filename,index=False,columns=cols)
 	  
-def server():
+def server(zk):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
     filesend_pb2_grpc.add_RouteServiceServicer_to_server(RouteService(), server)
     server.add_insecure_port('[::]:50051')
@@ -74,4 +97,19 @@ def server():
     server.start()
     server.wait_for_termination()
 
-server()
+
+time.sleep(1)
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+ZooIPAddress=config['ZOOKEEPER']['IPAddress']
+ZooPortNumber=config['ZOOKEEPER']['PortNumber']
+IPAddress=config['SYSTEM']['IPAddress']
+PortNumber=config['SYSTEM']['PortNumber']
+print(ZooIPAddress+":"+ZooPortNumber)
+zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
+# zk = KazooClient(hosts='10.0.1.1:2191') #change it to the zookeeper address
+zk.start()
+zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
+# zk.add_auth("digest","cmpe:275")
+server(zk)
