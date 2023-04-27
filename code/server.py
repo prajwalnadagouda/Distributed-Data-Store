@@ -15,7 +15,7 @@ import configparser
 import threading
 import time
 from glob import glob 
-
+import shutil
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def request(self, request, context):
@@ -65,17 +65,60 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             # yield filesend_pb2.Route(payload=chunk)
         return filesend_pb2.Route(id=3)
 
-    def filewrite(self, request, context):
+    def filestore(self, request, context):
         print("Got request " + str(request))
-        binary_file = open("toload/writetest.csv", "wb")
+        binary_file = open("./toload/writetest.csv", "wb")
         for i in request:
             binary_file.write(i.payload)
-        x=threading.Thread(target=file_split,args=() )
+        x=threading.Thread(target=file_ETL,args=() )
         x.start()
         return filesend_pb2.Route(id=1)
-    
 
-def file_split():
+    def finalfilestore(self, request, context):
+        print("Got request " + str(request))
+        binary_file = open("./data/writetest.csv", "wb")
+        for i in request:
+            binary_file.write(i.payload)
+        return filesend_pb2.Route(id=1)
+    
+def file_split(CONTENT_FILE_NAME):
+    file = open(CONTENT_FILE_NAME, 'rb')
+    while True:
+        chunk = file.read(4000000)
+        if not chunk: 
+            break
+        res= filesend_pb2.Route(payload=chunk)
+        yield res   
+
+def file_move(connection,filelist):
+    print("tomove 1")
+    with grpc.insecure_channel(str(connection)) as channel:
+        print("tomove 2")
+        for CONTENT_FILE_NAME in filelist:
+            print("----",CONTENT_FILE_NAME)
+            stub = filesend_pb2_grpc.RouteServiceStub(channel)
+            pay=file_split(CONTENT_FILE_NAME)
+            response= stub.finalfilestore(pay)
+            print(response)
+        for file in filelist:
+            src_path = file
+            dst_path = "./moved/"+file.split("/")[-1]
+            shutil.move(src_path, dst_path)
+
+def file_spread():
+    tomovefiles=(glob("./tomove/*.csv"))
+    children = zk.get_children("/available")
+    print(children)
+    i=0
+    servercount=len(children)
+    if(len(children)!=0):
+        for child in children:
+            print("---->",servercount,tomovefiles ,tomovefiles[i::servercount])
+            file_move(child,tomovefiles[i::servercount])
+            i=i+1
+        
+
+def file_ETL():
     toloadfiles=(glob("./toload/*.csv"))
     for toloadfile in toloadfiles:
         df = pd.read_csv(toloadfile)
@@ -88,6 +131,11 @@ def file_split():
             filename = "./tomove/"+j+".csv"
             print(filename)
             df.loc[df['Issue Date'] == i].to_csv(filename,index=False,columns=cols)
+    file_spread()
+    for file in toloadfiles:
+        src_path = file
+        dst_path = "./loaded/"+file.split("/")[-1]
+        shutil.move(src_path, dst_path)
 	  
 def server(zk):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))

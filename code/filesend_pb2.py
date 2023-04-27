@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x66ilesend.proto\x12\x05route\"W\n\x05Route\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06origin\x18\x02 \x01(\x03\x12\x13\n\x0b\x64\x65stination\x18\x03 \x01(\x03\x12\x0c\n\x04path\x18\x04 \x01(\t\x12\x0f\n\x07payload\x18\x05 \x01(\x0c\x32\x66\n\x0cRouteService\x12)\n\x07request\x12\x0c.route.Route\x1a\x0c.route.Route\"\x00\x30\x01\x12+\n\tfilewrite\x12\x0c.route.Route\x1a\x0c.route.Route\"\x00(\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0e\x66ilesend.proto\x12\x05route\"W\n\x05Route\x12\n\n\x02id\x18\x01 \x01(\x03\x12\x0e\n\x06origin\x18\x02 \x01(\x03\x12\x13\n\x0b\x64\x65stination\x18\x03 \x01(\x03\x12\x0c\n\x04path\x18\x04 \x01(\t\x12\x0f\n\x07payload\x18\x05 \x01(\x0c\x32\x98\x01\n\x0cRouteService\x12)\n\x07request\x12\x0c.route.Route\x1a\x0c.route.Route\"\x00\x30\x01\x12+\n\tfilestore\x12\x0c.route.Route\x1a\x0c.route.Route\"\x00(\x01\x12\x30\n\x0e\x66inalfilestore\x12\x0c.route.Route\x1a\x0c.route.Route\"\x00(\x01\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'filesend_pb2', globals())
@@ -22,6 +22,6 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   _ROUTE._serialized_start=25
   _ROUTE._serialized_end=112
-  _ROUTESERVICE._serialized_start=114
-  _ROUTESERVICE._serialized_end=216
+  _ROUTESERVICE._serialized_start=115
+  _ROUTESERVICE._serialized_end=267
 # @@protoc_insertion_point(module_scope)

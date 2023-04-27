@@ -21,8 +21,13 @@ class RouteServiceStub(object):
                 request_serializer=filesend__pb2.Route.SerializeToString,
                 response_deserializer=filesend__pb2.Route.FromString,
                 )
-        self.filewrite = channel.stream_unary(
-                '/route.RouteService/filewrite',
+        self.filestore = channel.stream_unary(
+                '/route.RouteService/filestore',
+                request_serializer=filesend__pb2.Route.SerializeToString,
+                response_deserializer=filesend__pb2.Route.FromString,
+                )
+        self.finalfilestore = channel.stream_unary(
+                '/route.RouteService/finalfilestore',
                 request_serializer=filesend__pb2.Route.SerializeToString,
                 response_deserializer=filesend__pb2.Route.FromString,
                 )
@@ -39,7 +44,13 @@ class RouteServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def filewrite(self, request_iterator, context):
+    def filestore(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def finalfilestore(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,8 +64,13 @@ def add_RouteServiceServicer_to_server(servicer, server):
                     request_deserializer=filesend__pb2.Route.FromString,
                     response_serializer=filesend__pb2.Route.SerializeToString,
             ),
-            'filewrite': grpc.stream_unary_rpc_method_handler(
-                    servicer.filewrite,
+            'filestore': grpc.stream_unary_rpc_method_handler(
+                    servicer.filestore,
+                    request_deserializer=filesend__pb2.Route.FromString,
+                    response_serializer=filesend__pb2.Route.SerializeToString,
+            ),
+            'finalfilestore': grpc.stream_unary_rpc_method_handler(
+                    servicer.finalfilestore,
                     request_deserializer=filesend__pb2.Route.FromString,
                     response_serializer=filesend__pb2.Route.SerializeToString,
             ),
@@ -88,7 +104,7 @@ class RouteService(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def filewrite(request_iterator,
+    def filestore(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -98,7 +114,24 @@ class RouteService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/filewrite',
+        return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/filestore',
+            filesend__pb2.Route.SerializeToString,
+            filesend__pb2.Route.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def finalfilestore(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/finalfilestore',
             filesend__pb2.Route.SerializeToString,
             filesend__pb2.Route.FromString,
             options, channel_credentials,

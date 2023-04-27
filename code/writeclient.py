@@ -14,8 +14,9 @@ def filesplit(CONTENT_FILE_NAME):
 def run():
     with grpc.insecure_channel('localhost:50051') as channel:
         stub = filesend_pb2_grpc.RouteServiceStub(channel)
-        CONTENT_FILE_NAME="../dataset/Parking_Violations_Issued_-_Fiscal_Year_2014.csv"
+        # CONTENT_FILE_NAME="../dataset/Parking_Violations_Issued_-_Fiscal_Year_2014.csv"
+        CONTENT_FILE_NAME="./waste/readtest.csv"
         pay=filesplit(CONTENT_FILE_NAME)
-        response= stub.filewrite(pay)
+        response= stub.filestore(pay)
         print(response)
 run()

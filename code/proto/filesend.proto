@@ -7,7 +7,8 @@ package route;
 
 service RouteService {
     rpc request(Route) returns (stream Route) {}
-    rpc filewrite(stream Route) returns (Route) {}
+    rpc filestore(stream Route) returns (Route) {}
+    rpc finalfilestore(stream Route) returns (Route) {}
 }
 
 message Route {
