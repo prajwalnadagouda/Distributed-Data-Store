@@ -21,38 +21,41 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def request(self, request, context):
         print("Got request " + str(request))
         daterange=request.path
-        daterange=daterange.split("-")
+        daterange=daterange.split(",")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3)
-        if(len(daterange)==1):
+        if(daterange[0]==daterange[1]):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
+            trafficode=daterange[2]
         else:
             startdate=daterange[0].replace("/","-")
             enddate=daterange[1].replace("/","-")
+            trafficode=daterange[2]
         
-        print(startdate,enddate)
+        print(startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
         delta = datetime.timedelta(days=1)
         csv_files=[]
+        firstflag=0
         while (start_date <= end_date):
             csv_files.append(str(start_date))
+            try:
+                file = open("../ETL/main/"+str(start_date)+".csv", 'rb')
+                if(firstflag==0):
+                    firstflag=1
+                else:
+                    next(file)
+                while True:
+                    chunk = file.read(4000000)
+                    if not chunk: 
+                        break
+                    yield filesend_pb2.Route(payload=chunk)
+            except:
+                pass
             start_date += delta
-        print(csv_files)
-
-        firstflag=0
-        for filetocombine in csv_files:
-            file = open("../ETL/main/"+filetocombine+".csv", 'rb')
-            if(firstflag==0):
-                firstflag=1
-            else:
-                next(file)
-            while True:
-                chunk = file.read(4000000)
-                if not chunk: 
-                    break
-                yield filesend_pb2.Route(payload=chunk)
+            
 
 
         # CONTENT_FILE_NAME="../dataset/Parking_Violations_Issued_-_Fiscal_Year_2014.csv"
@@ -102,7 +105,7 @@ def file_move(connection,filelist):
             print(response)
         for file in filelist:
             src_path = file
-            dst_path = "./moved/"+file.split("/")[-1]
+            dst_path = "./loaded/"+file.split("/")[-1]
             shutil.move(src_path, dst_path)
 
 def file_spread():
