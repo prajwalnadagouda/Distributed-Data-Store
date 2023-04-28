@@ -59,8 +59,8 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
 
     def filestore(self, request, context):
         print("Got request " + str(request))
+        binary_file = open("./content/toload/something.csv", "wb")
         for i in request:
-            binary_file = open("./content/toload/something.csv", "wb")
             binary_file.write(i.payload)
         x=threading.Thread(target=file_ETL,args=() )
         x.start()
