@@ -8,11 +8,12 @@ def run():
         stub = filesend_pb2_grpc.RouteServiceStub(channel)
         responses = stub.request(filesend_pb2.Route(id=1, origin =1,path="2013/03/03,2013/03/06,"))
         
-        
-        binary_file = open("dump/readtest.csv", "wb")
+        binary_file = open("./content/dump/readtest.csv", "wb")
+        print("hi")
         for response in responses:
             # print("Greeter client received following from server: ",(response.payload))
             binary_file.write(response.payload)
+            print(response.payload)
             # Close file
         binary_file.close()
 run()
