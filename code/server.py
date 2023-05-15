@@ -17,6 +17,12 @@ import time
 from glob import glob 
 import shutil
 
+import os
+if os.environ.get('https_proxy'):
+ del os.environ['https_proxy']
+if os.environ.get('http_proxy'):
+ del os.environ['http_proxy']
+
 from myhash import ConsistentHash
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
@@ -48,6 +54,19 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                 file = open("./content/data/"+str(start_date)+".csv", 'rb')
             except:
                 targetservers=ch.get_servers(str(start_date)+".csv")
+                for targetserver in targetservers:
+                    print(targetserver,str(IPAddress)+":"+str(PortNumber))
+                    if(targetserver==str(IPAddress)+":"+str(PortNumber)):
+                        continue
+                    try:
+                        with grpc.insecure_channel(targetserver) as channel:
+                            stub = filesend_pb2_grpc.RouteServiceStub(channel)
+                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,path=str(start_date)+",,"))
+                            for response in responses:
+                                print(response)
+                    except Exception as e:
+
+                        print(e)
                 print("->-",start_date,targetservers)
                 print("file not available")
                 start_date += delta
@@ -162,7 +181,7 @@ zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
 
 
 
-replication_factor = 1
+replication_factor = 2
 ch = ConsistentHash(replication_factor)
 # ch.add_server(IPAddress+":"+PortNumber)
 
