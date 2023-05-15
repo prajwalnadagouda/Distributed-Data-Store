@@ -33,21 +33,23 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         daterange=daterange.split(",")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3)
-        if(daterange[0]==daterange[1]):
-            startdate=daterange[0].replace("/","-")
-            enddate=daterange[0].replace("/","-")
-            trafficode=daterange[2]
-        else:
+        if(daterange[1]):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[1].replace("/","-")
             trafficode=daterange[2]
+        else:
+            startdate=daterange[0].replace("/","-")
+            enddate=daterange[0].replace("/","-")
+            trafficode=daterange[2]
+            
         
-        print(startdate,enddate,trafficode)
+        print("--<",startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
         delta = datetime.timedelta(days=1)
         csv_files=[]
         firstflag=0
+        print("-->>>",start_date,end_date)
         while (start_date <= end_date):
             csv_files.append(str(start_date))
             try:
@@ -61,9 +63,10 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                     try:
                         with grpc.insecure_channel(targetserver) as channel:
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
-                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,path=str(start_date)+",,"))
+                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
                             for response in responses:
-                                print(response)
+                                print("hiiiiii")
+                                yield filesend_pb2.Route(payload=response.payload)
                     except Exception as e:
 
                         print(e)

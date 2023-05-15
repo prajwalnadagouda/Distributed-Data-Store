@@ -12,7 +12,7 @@ def filesplit(CONTENT_FILE_NAME):
         res= filesend_pb2.Route(payload=chunk)
         yield res
 def run():
-    with grpc.insecure_channel('10.0.12.1:50052') as channel:
+    with grpc.insecure_channel('10.0.12.2:50051') as channel:
         stub = filesend_pb2_grpc.RouteServiceStub(channel)
         # CONTENT_FILE_NAME="../dataset/Parking_Violations_Issued_-_Fiscal_Year_2014.csv"
         CONTENT_FILE_NAME="./content/waste/readtest.csv"
