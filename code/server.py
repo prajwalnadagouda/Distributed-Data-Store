@@ -20,7 +20,8 @@ import shutil
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def query(self, request, context):
         print("Got request " + str(request))
-        daterange=request.path
+        daterange=str(request.payload.decode('utf-8'))
+        print((daterange))
         daterange=daterange.split(",")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3)
