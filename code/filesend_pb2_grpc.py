@@ -16,13 +16,13 @@ class RouteServiceStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.request = channel.unary_stream(
-                '/route.RouteService/request',
+        self.query = channel.unary_stream(
+                '/route.RouteService/query',
                 request_serializer=filesend__pb2.Route.SerializeToString,
                 response_deserializer=filesend__pb2.Route.FromString,
                 )
-        self.filestore = channel.stream_unary(
-                '/route.RouteService/filestore',
+        self.upload = channel.stream_unary(
+                '/route.RouteService/upload',
                 request_serializer=filesend__pb2.Route.SerializeToString,
                 response_deserializer=filesend__pb2.Route.FromString,
                 )
@@ -38,13 +38,13 @@ class RouteServiceServicer(object):
 
     """
 
-    def request(self, request, context):
+    def query(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def filestore(self, request_iterator, context):
+    def upload(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -59,13 +59,13 @@ class RouteServiceServicer(object):
 
 def add_RouteServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'request': grpc.unary_stream_rpc_method_handler(
-                    servicer.request,
+            'query': grpc.unary_stream_rpc_method_handler(
+                    servicer.query,
                     request_deserializer=filesend__pb2.Route.FromString,
                     response_serializer=filesend__pb2.Route.SerializeToString,
             ),
-            'filestore': grpc.stream_unary_rpc_method_handler(
-                    servicer.filestore,
+            'upload': grpc.stream_unary_rpc_method_handler(
+                    servicer.upload,
                     request_deserializer=filesend__pb2.Route.FromString,
                     response_serializer=filesend__pb2.Route.SerializeToString,
             ),
@@ -87,7 +87,7 @@ class RouteService(object):
     """
 
     @staticmethod
-    def request(request,
+    def query(request,
             target,
             options=(),
             channel_credentials=None,
@@ -97,14 +97,14 @@ class RouteService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/route.RouteService/request',
+        return grpc.experimental.unary_stream(request, target, '/route.RouteService/query',
             filesend__pb2.Route.SerializeToString,
             filesend__pb2.Route.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def filestore(request_iterator,
+    def upload(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -114,7 +114,7 @@ class RouteService(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/filestore',
+        return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/upload',
             filesend__pb2.Route.SerializeToString,
             filesend__pb2.Route.FromString,
             options, channel_credentials,
