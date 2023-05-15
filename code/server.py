@@ -18,7 +18,7 @@ from glob import glob
 import shutil
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
-    def request(self, request, context):
+    def query(self, request, context):
         print("Got request " + str(request))
         daterange=request.path
         daterange=daterange.split(",")
@@ -57,7 +57,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             start_date += delta
         return filesend_pb2.Route(id=3)
 
-    def filestore(self, request, context):
+    def upload(self, request, context):
         print("Got request " + str(request))
         binary_file = open("./content/toload/something.csv", "wb")
         for i in request:

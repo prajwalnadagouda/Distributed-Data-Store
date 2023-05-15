@@ -6,8 +6,8 @@ package route;
 // a service interface (contract)
 
 service RouteService {
-    rpc request(Route) returns (stream Route) {}
-    rpc filestore(stream Route) returns (Route) {}
+    rpc query(Route) returns (stream Route) {}
+    rpc upload(stream Route) returns (Route) {}
     rpc finalfilestore(stream Route) returns (Route) {}
 }
 

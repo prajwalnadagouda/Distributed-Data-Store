@@ -17,6 +17,6 @@ def run():
         # CONTENT_FILE_NAME="../dataset/Parking_Violations_Issued_-_Fiscal_Year_2014.csv"
         CONTENT_FILE_NAME="./content/waste/readtest.csv"
         pay=filesplit(CONTENT_FILE_NAME)
-        response= stub.filestore(pay)
+        response= stub.upload(pay)
         print(response)
 run()
