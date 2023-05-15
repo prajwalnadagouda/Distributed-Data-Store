@@ -21,7 +21,7 @@ from myhash import ConsistentHash
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def query(self, request, context):
-        print("Got request " + str(request))
+        print("Got request3 " + str(request))
         daterange=str(request.payload.decode('utf-8'))
         print((daterange))
         daterange=daterange.split(",")
@@ -42,12 +42,16 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         delta = datetime.timedelta(days=1)
         csv_files=[]
         firstflag=0
-        while (start_date < end_date):
+        while (start_date <= end_date):
             csv_files.append(str(start_date))
             try:
                 file = open("./content/data/"+str(start_date)+".csv", 'rb')
             except:
-                print("file nahi hain bhai")
+                targetservers=ch.get_servers(str(start_date)+".csv")
+                print("->-",start_date,targetservers)
+                print("file not available")
+                start_date += delta
+                continue
             if(firstflag==0):
                 firstflag=1
             else:
@@ -61,7 +65,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         return filesend_pb2.Route(id=3)
 
     def upload(self, request, context):
-        print("Got request " + str(request))
+        print("Got request2 " + str(request))
         binary_file = open("./content/toload/something.csv", "wb")
         for i in request:
             binary_file.write(i.payload)
@@ -70,7 +74,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         return filesend_pb2.Route(id=1)
 
     def finalfilestore(self, request, context):
-        print("Got request " + str(request))
+        print("Got request1 " + str(request))
         for eachrequest in request:
             binary_file = open("./content/data/"+eachrequest.path, "wb")
             binary_file.write(eachrequest.payload)
@@ -96,6 +100,7 @@ def file_spread():
     for eachfile in tomovefiles:
         year=eachfile.split("/")[-1]
         targetservers=ch.get_servers(year)
+        print(year,targetservers)
         for targetserver in targetservers:
             with grpc.insecure_channel(str(targetserver)) as channel:
                     stub = filesend_pb2_grpc.RouteServiceStub(channel)
@@ -154,7 +159,26 @@ zk.start()
 zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
 # zk.add_auth("digest","cmpe:275")
 
-replication_factor = 2
+
+
+
+replication_factor = 1
 ch = ConsistentHash(replication_factor)
-ch.add_server(IPAddress+":"+PortNumber)
+# ch.add_server(IPAddress+":"+PortNumber)
+
+
+children = zk.get_children('/available')
+for child in children:
+    ch.add_server(child)
+
+@zk.ChildrenWatch("/available")
+def watch_children(children):
+    availableservers = zk.get_children('/available')
+    availableserverslen = len(availableservers)
+    if((len((ch.__dict__)['ring'])/replication_factor) >availableserverslen):
+        print("deleted")
+    else:
+        print("added")  
+    print(ch.__dict__)
+    print("------->",children)
 server(zk)
