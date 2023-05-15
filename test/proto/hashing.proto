@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package file_store;
+
+import "google/protobuf/empty.proto";
+
+message PutFileRequest {
+  string filename = 1;
+  bytes file_contents = 2;
+  int32 replication_factor = 3;
+}
+
+message GetFileRequest {
+  string filename = 1;
+}
+
+message GetFileResponse {
+  bytes file_contents = 1;
+}
+
+service FileStore {
+  rpc PutFile(PutFileRequest) returns (google.protobuf.Empty);
+  rpc GetFile(GetFileRequest) returns (GetFileResponse);
+}

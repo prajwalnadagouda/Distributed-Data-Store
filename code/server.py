@@ -17,6 +17,8 @@ import time
 from glob import glob 
 import shutil
 
+from myhash import ConsistentHash
+
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def query(self, request, context):
         print("Got request " + str(request))
@@ -73,7 +75,10 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             binary_file = open("./content/data/"+eachrequest.path, "wb")
             binary_file.write(eachrequest.payload)
         return filesend_pb2.Route(id=1)
-    
+
+
+
+#helper for file_spread
 def file_split(CONTENT_FILE_NAME):
     file = open(CONTENT_FILE_NAME, 'rb')
     while True:
@@ -83,33 +88,27 @@ def file_split(CONTENT_FILE_NAME):
         res= filesend_pb2.Route(path=CONTENT_FILE_NAME.split("/")[-1], payload=chunk)
         yield res   
 
-def file_move(connection,filelist):
-    with grpc.insecure_channel(str(connection)) as channel:
-        for CONTENT_FILE_NAME in filelist:
-            print("----",CONTENT_FILE_NAME)
-            stub = filesend_pb2_grpc.RouteServiceStub(channel)
-            pay=file_split(CONTENT_FILE_NAME)
-            print("yeh pay hai",pay)
-            response= stub.finalfilestore(pay)
-            print(response)
-        for file in filelist:
-            src_path = file
-            dst_path = "./content/moved/"+file.split("/")[-1]
-            shutil.move(src_path, dst_path)
 
+#Called after upload->ETL - 
 def file_spread():
     tomovefiles=(glob("./content/tomove/*.csv"))
-    children = zk.get_children("/available")
-    print(children)
-    i=0
-    servercount=len(children)
-    if(len(children)!=0):
-        for child in children:
-            print("---->",servercount,tomovefiles ,tomovefiles[i::servercount])
-            file_move(child,tomovefiles[i::servercount])
-            i=i+1
+    print(tomovefiles)
+    for eachfile in tomovefiles:
+        year=eachfile.split("/")[-1]
+        targetservers=ch.get_servers(year)
+        for targetserver in targetservers:
+            with grpc.insecure_channel(str(targetserver)) as channel:
+                    stub = filesend_pb2_grpc.RouteServiceStub(channel)
+                    pay=file_split(eachfile)
+                    response= stub.finalfilestore(pay)
+
+    for file in tomovefiles:
+        src_path = file
+        dst_path = "./content/moved/"+file.split("/")[-1]
+        shutil.move(src_path, dst_path)
         
 
+# Called right after upload action - Splits the files in format
 def file_ETL():
     toloadfiles=(glob("./content/toload/*.csv"))
     for toloadfile in toloadfiles:
@@ -142,6 +141,8 @@ time.sleep(1)
 config = configparser.ConfigParser()
 config.read('config.ini')
 
+
+
 ZooIPAddress=config['ZOOKEEPER']['IPAddress']
 ZooPortNumber=config['ZOOKEEPER']['PortNumber']
 IPAddress=config['SYSTEM']['IPAddress']
@@ -152,4 +153,8 @@ zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
 zk.start()
 zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
 # zk.add_auth("digest","cmpe:275")
+
+replication_factor = 2
+ch = ConsistentHash(replication_factor)
+ch.add_server(IPAddress+":"+PortNumber)
 server(zk)
