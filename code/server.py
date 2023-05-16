@@ -65,10 +65,8 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
                             responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
                             for response in responses:
-                                print("hiiiiii")
                                 yield filesend_pb2.Route(payload=response.payload)
                     except Exception as e:
-
                         print(e)
                 print("->-",start_date,targetservers)
                 print("file not available")
@@ -189,18 +187,56 @@ ch = ConsistentHash(replication_factor)
 # ch.add_server(IPAddress+":"+PortNumber)
 
 
+serverlist=[]
 children = zk.get_children('/available')
 for child in children:
     ch.add_server(child)
+    serverlist.append(child)
+
+def movingafterchange():
+    tomovefiles=(glob("./content/data/*.csv"))
+    print(tomovefiles)
+    for eachfile in tomovefiles:
+        year=eachfile.split("/")[-1]
+        targetservers=ch.get_servers(year)
+        print(year,targetservers)
+        flag=1
+        for targetserver in targetservers:
+            if(targetserver==str(IPAddress)+":"+str(PortNumber)):
+                flag=0
+                continue
+            try:
+                with grpc.insecure_channel(str(targetserver)) as channel:
+                    stub = filesend_pb2_grpc.RouteServiceStub(channel)
+                    pay=file_split(eachfile)
+                    response= stub.finalfilestore(pay)
+            except Exception as e:
+                print(e)
+        if(flag):
+            src_path = eachfile
+            dst_path = "./content/rehashed/"+eachfile.split("/")[-1]
+            shutil.move(src_path, dst_path)
+
 
 @zk.ChildrenWatch("/available")
 def watch_children(children):
     availableservers = zk.get_children('/available')
     availableserverslen = len(availableservers)
     if((len((ch.__dict__)['ring'])/replication_factor) >availableserverslen):
+        
+        for i in (list(set(serverlist) - set(availableservers))):
+            ch.remove_server(i)
+            serverlist.remove(i)
         print("deleted")
+        print("serverlist",serverlist)
     else:
-        print("added")  
+        for i in (list(set(availableservers) - set(serverlist))):
+            ch.add_server(i)
+            serverlist.append(i)
+        print("added")
+        print("serverlist",serverlist)
     print(ch.__dict__)
-    print("------->",children)
+    # print("------->",children)
+    # movingafterchange()
+
 server(zk)
