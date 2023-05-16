@@ -26,6 +26,47 @@ if os.environ.get('http_proxy'):
 from myhash import ConsistentHash
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
+    def finalquery(self, request, context):
+        print("Got request4 " + str(request))
+        daterange=str(request.payload.decode('utf-8'))
+        print((daterange))
+        daterange=daterange.split(",")
+        if(len(daterange)==0):
+            return filesend_pb2.Route(id=3)
+        if(daterange[1]):
+            startdate=daterange[0].replace("/","-")
+            enddate=daterange[1].replace("/","-")
+            trafficode=daterange[2]
+        else:
+            startdate=daterange[0].replace("/","-")
+            enddate=daterange[0].replace("/","-")
+            trafficode=daterange[2]
+        print("--<",startdate,enddate,trafficode)
+        start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
+        end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
+        delta = datetime.timedelta(days=1)
+        csv_files=[]
+        firstflag=0
+        while (start_date <= end_date):
+            csv_files.append(str(start_date))
+            try:
+                file = open("./content/data/"+str(start_date)+".csv", 'rb')
+                if(firstflag==0):
+                    firstflag=1
+                else:
+                    next(file)
+                while True:
+                    chunk = file.read(4000000)
+                    if not chunk: 
+                        break
+                    yield filesend_pb2.Route(payload=chunk)
+            except:
+                yield filesend_pb2.Route(path="none")
+            start_date += delta
+        yield filesend_pb2.Route(path="none")
+
+
+
     def query(self, request, context):
         print("Got request3 " + str(request))
         daterange=str(request.payload.decode('utf-8'))
@@ -49,40 +90,50 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         delta = datetime.timedelta(days=1)
         csv_files=[]
         firstflag=0
-        print("-->>>",start_date,end_date)
         while (start_date <= end_date):
             csv_files.append(str(start_date))
             try:
                 file = open("./content/data/"+str(start_date)+".csv", 'rb')
+                if(firstflag==0):
+                    firstflag=1
+                else:
+                    next(file)
+                while True:
+                    chunk = file.read(4000000)
+                    if not chunk: 
+                        break
+                    yield filesend_pb2.Route(payload=chunk)
             except:
                 targetservers=ch.get_servers(str(start_date)+".csv")
+                filefound=False
                 for targetserver in targetservers:
                     print(targetserver,str(IPAddress)+":"+str(PortNumber))
+                    if(filefound):
+                        break
                     if(targetserver==str(IPAddress)+":"+str(PortNumber)):
                         continue
                     try:
                         with grpc.insecure_channel(targetserver) as channel:
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
-                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
+                            responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
                             for response in responses:
-                                yield filesend_pb2.Route(payload=response.payload)
+                                # yield filesend_pb2.Route(payload=response.payload)
+                                try:
+                                    if(response.path=="None"):
+                                        break
+                                    else:
+                                        yield filesend_pb2.Route(payload=response.payload)
+                                except:
+                                    yield filesend_pb2.Route(payload=response.payload)
                     except Exception as e:
-                        print(e)
+                        print("wassi",e)
                 print("->-",start_date,targetservers)
                 print("file not available")
                 start_date += delta
                 continue
-            if(firstflag==0):
-                firstflag=1
-            else:
-                next(file)
-            while True:
-                chunk = file.read(4000000)
-                if not chunk: 
-                    break
-                yield filesend_pb2.Route(payload=chunk)
+
             start_date += delta
-        return filesend_pb2.Route(id=3)
+        return filesend_pb2.Route(path="none")
 
     def upload(self, request, context):
         print("Got request2 " + str(request))

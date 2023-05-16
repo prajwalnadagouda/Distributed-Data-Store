@@ -9,6 +9,7 @@ service RouteService {
     rpc query(Route) returns (stream Route) {}
     rpc upload(stream Route) returns (Route) {}
     rpc finalfilestore(stream Route) returns (Route) {}
+    rpc finalquery(Route) returns (stream Route) {}
 }
 
 message Route {
