@@ -63,7 +63,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             except:
                 yield filesend_pb2.Route(path="none")
             start_date += delta
-        yield filesend_pb2.Route(path="none")
 
 
 
@@ -117,10 +116,9 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
                             responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
                             for response in responses:
-                                # yield filesend_pb2.Route(payload=response.payload)
                                 try:
-                                    if(response.path=="None"):
-                                        break
+                                    if(response.path=="none"):
+                                        print("calling other friends for",start_date)
                                     else:
                                         yield filesend_pb2.Route(payload=response.payload)
                                 except:
@@ -129,10 +127,9 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                         print("wassi",e)
                 print("->-",start_date,targetservers)
                 print("file not available")
-                start_date += delta
-                continue
-
             start_date += delta
+            continue
+
         return filesend_pb2.Route(path="none")
 
     def upload(self, request, context):
