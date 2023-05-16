@@ -31,6 +31,11 @@ class RouteServiceStub(object):
                 request_serializer=filesend__pb2.Route.SerializeToString,
                 response_deserializer=filesend__pb2.Route.FromString,
                 )
+        self.finalquery = channel.unary_stream(
+                '/route.RouteService/finalquery',
+                request_serializer=filesend__pb2.Route.SerializeToString,
+                response_deserializer=filesend__pb2.Route.FromString,
+                )
 
 
 class RouteServiceServicer(object):
@@ -56,6 +61,12 @@ class RouteServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def finalquery(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RouteServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -71,6 +82,11 @@ def add_RouteServiceServicer_to_server(servicer, server):
             ),
             'finalfilestore': grpc.stream_unary_rpc_method_handler(
                     servicer.finalfilestore,
+                    request_deserializer=filesend__pb2.Route.FromString,
+                    response_serializer=filesend__pb2.Route.SerializeToString,
+            ),
+            'finalquery': grpc.unary_stream_rpc_method_handler(
+                    servicer.finalquery,
                     request_deserializer=filesend__pb2.Route.FromString,
                     response_serializer=filesend__pb2.Route.SerializeToString,
             ),
@@ -132,6 +148,23 @@ class RouteService(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.stream_unary(request_iterator, target, '/route.RouteService/finalfilestore',
+            filesend__pb2.Route.SerializeToString,
+            filesend__pb2.Route.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def finalquery(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/route.RouteService/finalquery',
             filesend__pb2.Route.SerializeToString,
             filesend__pb2.Route.FromString,
             options, channel_credentials,
