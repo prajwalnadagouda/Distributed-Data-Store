@@ -24,6 +24,7 @@ if os.environ.get('http_proxy'):
  del os.environ['http_proxy']
 
 from myhash import ConsistentHash
+from myETL import split_csv_file
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def finalquery(self, request, context):
@@ -134,7 +135,9 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
 
     def upload(self, request, context):
         print("Got request2 " + str(request))
-        binary_file = open("./content/toload/something.csv", "wb")
+        now = datetime.datetime.now() 
+        date_time = now.strftime("%m-%d-%Y%H:%M:%S")
+        binary_file = open("./content/toload/"+date_time+".csv", "wb")
         for i in request:
             binary_file.write(i.payload)
         x=threading.Thread(target=file_ETL,args=() )
@@ -185,16 +188,8 @@ def file_spread():
 def file_ETL():
     toloadfiles=(glob("./content/toload/*.csv"))
     for toloadfile in toloadfiles:
-        df = pd.read_csv(toloadfile)
-        cols = df.columns
-        for i in set(df['Issue Date']): # for classified by years files
-            j=i
-            j=j.split("/")
-            j=j[2]+"-"+j[0]+"-"+j[1]
-            # i=str(i).replace("/","-")
-            filename = "./content/tomove/"+j+".csv"
-            print(filename)
-            df.loc[df['Issue Date'] == i].to_csv(filename,index=False,columns=cols)
+        split_csv_file(toloadfile,"./content/tomove/")
+    print("etl done")
     file_spread()
     for file in toloadfiles:
         src_path = file
