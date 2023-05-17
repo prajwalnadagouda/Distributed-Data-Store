@@ -211,6 +211,8 @@ def file_spread():
     print(tomovefiles)
     for eachfile in tomovefiles:
         year=eachfile.split("/")[-1]
+        year=year.split("-")
+        year=year[0]+"-"+year[1]+"-"+year[2]+".csv"
         targetservers=ch.get_servers(year)
         print(year,targetservers)
         for targetserver in targetservers:
@@ -305,6 +307,8 @@ def movingafterchange():
     print(tomovefiles)
     for eachfile in tomovefiles:
         year=eachfile.split("/")[-1]
+        year=year.split("-")
+        year=year[0]+"-"+year[1]+"-"+year[2]+".csv"
         targetservers=ch.get_servers(year)
         print(year,targetservers)
         flag=1
