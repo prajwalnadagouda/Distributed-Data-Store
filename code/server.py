@@ -228,16 +228,21 @@ def my_listener(state):
         time.sleep(4)
         zooconnect()
         # Register somewhere that the session was lost
-    # elif state == KazooState.SUSPENDED:
-    #     # Handle being disconnected from Zookeeper
-    # else:
-    #     # Handle being connected/reconnected to Zookeeper
+    elif state == KazooState.SUSPENDED:
+        pass
+        # Handle being disconnected from Zookeeper
+    else:
+        pass
+        # Handle being connected/reconnected to Zookeeper
       
 def zooconnect():
     global zk
     zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
     # zk = KazooClient(hosts='10.0.1.1:2191') #change it to the zookeeper address
     zk.start()
+    while True:
+        if(not zk.exists("/available/"+IPAddress+":"+PortNumber)):
+            break
     zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
     # zk.add_auth("digest","cmpe:275")
     zk.add_listener(my_listener)
