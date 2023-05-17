@@ -25,12 +25,15 @@ if os.environ.get('http_proxy'):
 
 from myhash import ConsistentHash
 from myETL import split_csv_file
+from termcolor import colored
+
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
+    # for intra team communication
     def finalquery(self, request, context):
-        print("Got request3 " + str(request))
+        print(colored("Serving data to team cluster", 'magenta'))
+        print(colored(str(request),'magenta'))
         daterange=str(request.payload.decode('utf-8'))
-        print((daterange))
         daterange=daterange.split(":")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3)
@@ -42,9 +45,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
             trafficode=daterange[2]
-        
-        
-        print("--<",startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
         delta = datetime.timedelta(days=1)
@@ -53,7 +53,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         while (start_date <= end_date):
             filefound= False
             csv_files.append(str(start_date))
-            print("This is the file- ","./content/data/"+str(start_date)+"-"+trafficode+".csv")
             try:
                 if(trafficode==""):
                     tosendfiles=(glob("./content/data/"+str(start_date)+"*.csv"))
@@ -85,11 +84,11 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                 yield filesend_pb2.Route(path="none")
             start_date += delta
 
-
+    # talking to client and other teams
     def query(self, request, context):
-        print("Got request3 " + str(request))
+        print(colored("Serving data to team cluster", 'yellow'))
+        print(colored(str(request),'yellow'))
         daterange=str(request.payload.decode('utf-8'))
-        print((daterange))
         daterange=daterange.split(":")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3,path="none")
@@ -101,9 +100,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
             trafficode=daterange[2]
-        
-        
-        print("--<",startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
         delta = datetime.timedelta(days=1)
@@ -112,7 +108,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         while (start_date <= end_date):
             filefound= False
             csv_files.append(str(start_date))
-            print("This is the file- ","./content/data/"+str(start_date)+"-"+trafficode+".csv")
             try:
                 if(trafficode==""):
                     tosendfiles=(glob("./content/data/"+str(start_date)+"*.csv"))
@@ -145,7 +140,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             except:
                 targetservers=ch.get_servers(str(start_date)+".csv")
                 for targetserver in targetservers:
-                    print(targetserver,str(IPAddress)+":"+str(PortNumber))
                     if(filefound):
                         break
                     if(targetserver==str(IPAddress)+":"+str(PortNumber)):
@@ -166,18 +160,19 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                                     filefound=True
                                     yield filesend_pb2.Route(payload=response.payload)
                     except Exception as e:
-                        print("wassi",e)
-                print("->-",start_date,targetservers)
-                print("file not available")
+                        pass
             if(not filefound):
-                print("Not available in our cluster.ask other teams")
+                print(colored("Not available in our cluster. Ask other teams", 'red'))
+                
             start_date += delta
             continue
 
         return filesend_pb2.Route(path="none")
 
+    #for clients to upload
     def upload(self, request, context):
-        print("Got request2 " + str(request))
+        print(colored("Got request from the clients to store", 'yellow'))
+
         now = datetime.datetime.now() 
         date_time = now.strftime("%m-%d-%Y%H:%M:%S")
         binary_file = open("./content/toload/"+date_time+".csv", "wb")
@@ -187,8 +182,9 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         x.start()
         return filesend_pb2.Route(id=1)
 
+    #for intra team store
     def finalfilestore(self, request, context):
-        print("Got request1 " + str(request))
+        print(colored("Got request from team to store", 'magenta'))
         for eachrequest in request:
             binary_file = open("./content/data/"+eachrequest.path, "wb")
             binary_file.write(eachrequest.payload)
@@ -210,13 +206,11 @@ def file_split(CONTENT_FILE_NAME):
 #Called after upload->ETL - 
 def file_spread():
     tomovefiles=(glob("./content/tomove/*.csv"))
-    print(tomovefiles)
     for eachfile in tomovefiles:
         year=eachfile.split("/")[-1]
         year=year.split("-")
         year=year[0]+"-"+year[1]+"-"+year[2]+".csv"
         targetservers=ch.get_servers(year)
-        print(year,targetservers)
         for targetserver in targetservers:
             with grpc.insecure_channel(str(targetserver)) as channel:
                     stub = filesend_pb2_grpc.RouteServiceStub(channel)
@@ -234,7 +228,6 @@ def file_ETL():
     toloadfiles=(glob("./content/toload/*.csv"))
     for toloadfile in toloadfiles:
         split_csv_file(toloadfile,"./content/tomove/")
-    print("etl done")
     file_spread()
     for file in toloadfiles:
         src_path = file
@@ -251,34 +244,30 @@ def server(zk):
 
 
 time.sleep(1)
+
+# reading the config file
 config = configparser.ConfigParser()
 config.read('config.ini')
-
-
-
 ZooIPAddress=config['ZOOKEEPER']['IPAddress']
 ZooPortNumber=config['ZOOKEEPER']['PortNumber']
 IPAddress=config['SYSTEM']['IPAddress']
 PortNumber=config['SYSTEM']['PortNumber']
 # print(ZooIPAddress+":"+ZooPortNumber)
 
+
 from kazoo.client import KazooState
 def my_listener(state):
     if state == KazooState.LOST:
         time.sleep(4)
         zooconnect()
-        # Register somewhere that the session was lost
     elif state == KazooState.SUSPENDED:
         pass
-        # Handle being disconnected from Zookeeper
     else:
         pass
-        # Handle being connected/reconnected to Zookeeper
       
 def zooconnect():
     global zk
     zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
-    # zk = KazooClient(hosts='10.0.1.1:2191') #change it to the zookeeper address
     zk.start()
     while True:
         if(not zk.exists("/available/"+IPAddress+":"+PortNumber)):
@@ -291,12 +280,9 @@ def zooconnect():
 zk=zooconnect()
 
 
-
-
+#How many replications needed
 replication_factor = 2
 ch = ConsistentHash(replication_factor)
-# ch.add_server(IPAddress+":"+PortNumber)
-
 
 serverlist=[]
 children = zk.get_children('/available')
@@ -306,16 +292,13 @@ for child in children:
 
 def movingafterchange():
     tomovefiles=(glob("./content/data/*.csv"))
-    print(tomovefiles)
     for eachfile in tomovefiles:
         year=eachfile.split("/")[-1]
         year=year.split("-")
         year=year[0]+"-"+year[1]+"-"+year[2]+".csv"
         targetservers=ch.get_servers(year)
-        print(year,targetservers)
         flag=1
         for targetserver in targetservers:
-            print("see this")
             if(targetserver==str(IPAddress)+":"+str(PortNumber)):
                 flag=0
                 continue
@@ -325,7 +308,7 @@ def movingafterchange():
                     pay=file_split(eachfile)
                     response= stub.finalfilestore(pay)
             except Exception as e:
-                print(e)
+                pass
         if(flag):
             src_path = eachfile
             dst_path = "./content/rehashed/"+eachfile.split("/")[-1]
@@ -341,16 +324,14 @@ def watch_children(children):
         for i in (list(set(serverlist) - set(availableservers))):
             ch.remove_server(i)
             serverlist.remove(i)
-        print("deleted")
-        print("serverlist",serverlist)
+        print(colored("Server got removed", 'red'))
+
     else:
         for i in (list(set(availableservers) - set(serverlist))):
             ch.add_server(i)
             serverlist.append(i)
-        print("added")
-        print("serverlist",serverlist)
-    print(ch.__dict__)
-    # print("------->",children)
+        print(colored("Server got added", 'green'))
+    print(colored(str(ch.__dict__),"green"))
     movingafterchange()
 
 server(zk)
