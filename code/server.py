@@ -116,6 +116,8 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             try:
                 if(trafficode==""):
                     tosendfiles=(glob("./content/data/"+str(start_date)+"*.csv"))
+                    if(not tosendfiles):
+                        raise Exception("Date not in this server")
                     for tosend in tosendfiles:
                         file = open(tosend, 'rb')
                         filefound= True
