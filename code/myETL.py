@@ -10,7 +10,9 @@ def split_csv_file(input_file, output_directory):
         output_files = {}
         for row in reader:
             value1 = row[column1]
-            value1=value1.replace("/","-")
+            values = value1.split("/")
+            value1 = values[2]+"-"+values[0]+"-"+values[1]
+            # value1=value1.replace("/","-")
             value2 = row[column2]
             filename = f"{value1}-{value2}.csv"
             if filename not in output_files:
