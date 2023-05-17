@@ -28,7 +28,7 @@ from myETL import split_csv_file
 
 class RouteService(filesend_pb2_grpc.RouteServiceServicer):
     def finalquery(self, request, context):
-        print("Got request4 " + str(request))
+        print("Got request3 " + str(request))
         daterange=str(request.payload.decode('utf-8'))
         print((daterange))
         daterange=daterange.split(",")
@@ -42,6 +42,8 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
             trafficode=daterange[2]
+        
+        
         print("--<",startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
@@ -49,22 +51,39 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         csv_files=[]
         firstflag=0
         while (start_date <= end_date):
+            filefound= False
             csv_files.append(str(start_date))
+            print("This is the file- ","./content/data/"+str(start_date)+"-"+trafficode+".csv")
             try:
-                file = open("./content/data/"+str(start_date)+".csv", 'rb')
-                if(firstflag==0):
-                    firstflag=1
+                if(trafficode==""):
+                    tosendfiles=(glob("./content/data/"+str(start_date)+"*.csv"))
+                    for tosend in tosendfiles:
+                        file = open(tosend, 'rb')
+                        filefound= True
+                        if(firstflag==0):
+                            firstflag=1
+                        else:
+                            next(file)
+                        while True:
+                            chunk = file.read(4000000)
+                            if not chunk: 
+                                break
+                            yield filesend_pb2.Route(payload=chunk)
                 else:
-                    next(file)
-                while True:
-                    chunk = file.read(4000000)
-                    if not chunk: 
-                        break
-                    yield filesend_pb2.Route(payload=chunk)
+                    file = open("./content/data/"+str(start_date)+"-"+trafficode+".csv", 'rb')
+                    filefound= True
+                    if(firstflag==0):
+                        firstflag=1
+                    else:
+                        next(file)
+                    while True:
+                        chunk = file.read(4000000)
+                        if not chunk: 
+                            break
+                        yield filesend_pb2.Route(payload=chunk)
             except:
                 yield filesend_pb2.Route(path="none")
             start_date += delta
-
 
 
     def query(self, request, context):
@@ -109,7 +128,6 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                             if not chunk: 
                                 break
                             yield filesend_pb2.Route(payload=chunk)
-
                 else:
                     file = open("./content/data/"+str(start_date)+"-"+trafficode+".csv", 'rb')
                     filefound= True
