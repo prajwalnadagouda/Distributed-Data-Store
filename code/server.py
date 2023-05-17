@@ -250,6 +250,7 @@ def movingafterchange():
         print(year,targetservers)
         flag=1
         for targetserver in targetservers:
+            print("see this")
             if(targetserver==str(IPAddress)+":"+str(PortNumber)):
                 flag=0
                 continue
@@ -285,6 +286,6 @@ def watch_children(children):
         print("serverlist",serverlist)
     print(ch.__dict__)
     # print("------->",children)
-    # movingafterchange()
+    movingafterchange()
 
 server(zk)
