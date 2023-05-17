@@ -31,7 +31,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         print("Got request3 " + str(request))
         daterange=str(request.payload.decode('utf-8'))
         print((daterange))
-        daterange=daterange.split(",")
+        daterange=daterange.split(":")
         if(len(daterange)==0):
             return filesend_pb2.Route(id=3)
         if(daterange[1]):
@@ -90,9 +90,9 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         print("Got request3 " + str(request))
         daterange=str(request.payload.decode('utf-8'))
         print((daterange))
-        daterange=daterange.split(",")
+        daterange=daterange.split(":")
         if(len(daterange)==0):
-            return filesend_pb2.Route(id=3)
+            return filesend_pb2.Route(id=3,path="none")
         if(daterange[1]):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[1].replace("/","-")
@@ -151,7 +151,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                     try:
                         with grpc.insecure_channel(targetserver) as channel:
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
-                            responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+",,"), 'utf-8')))
+                            responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+"::"), 'utf-8')))
                             for response in responses:
                                 try:
                                     if(response.path=="none"):
