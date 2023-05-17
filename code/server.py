@@ -220,12 +220,30 @@ ZooIPAddress=config['ZOOKEEPER']['IPAddress']
 ZooPortNumber=config['ZOOKEEPER']['PortNumber']
 IPAddress=config['SYSTEM']['IPAddress']
 PortNumber=config['SYSTEM']['PortNumber']
-print(ZooIPAddress+":"+ZooPortNumber)
-zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
-# zk = KazooClient(hosts='10.0.1.1:2191') #change it to the zookeeper address
-zk.start()
-zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
-# zk.add_auth("digest","cmpe:275")
+# print(ZooIPAddress+":"+ZooPortNumber)
+
+from kazoo.client import KazooState
+def my_listener(state):
+    if state == KazooState.LOST:
+        time.sleep(4)
+        zooconnect()
+        # Register somewhere that the session was lost
+    # elif state == KazooState.SUSPENDED:
+    #     # Handle being disconnected from Zookeeper
+    # else:
+    #     # Handle being connected/reconnected to Zookeeper
+      
+def zooconnect():
+    global zk
+    zk = KazooClient(hosts=ZooIPAddress+":"+ZooPortNumber)
+    # zk = KazooClient(hosts='10.0.1.1:2191') #change it to the zookeeper address
+    zk.start()
+    zk.create("/available/"+IPAddress+":"+PortNumber,ephemeral=True)
+    # zk.add_auth("digest","cmpe:275")
+    zk.add_listener(my_listener)
+    return zk
+
+zk=zooconnect()
 
 
 
