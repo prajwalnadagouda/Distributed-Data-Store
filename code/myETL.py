@@ -4,7 +4,6 @@ def split_csv_file(input_file, output_directory):
     with open(input_file, 'r') as file:
         reader = csv.reader(file)
         header = next(reader)
-        print(header)
         column1=header.index("Issue Date")
         column2=header.index("Violation Code")
         output_files = {}

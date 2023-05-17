@@ -82,7 +82,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
             trafficode=daterange[2]
-            
+        
         
         print("--<",startdate,enddate,trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
@@ -91,21 +91,39 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
         csv_files=[]
         firstflag=0
         while (start_date <= end_date):
+            filefound= False
             csv_files.append(str(start_date))
+            print("This is the file- ","./content/data/"+str(start_date)+"-"+trafficode+".csv")
             try:
-                file = open("./content/data/"+str(start_date)+".csv", 'rb')
-                if(firstflag==0):
-                    firstflag=1
+                if(trafficode==""):
+                    tosendfiles=(glob("./content/data/"+str(start_date)+"*.csv"))
+                    for tosend in tosendfiles:
+                        file = open(tosend, 'rb')
+                        filefound= True
+                        if(firstflag==0):
+                            firstflag=1
+                        else:
+                            next(file)
+                        while True:
+                            chunk = file.read(4000000)
+                            if not chunk: 
+                                break
+                            yield filesend_pb2.Route(payload=chunk)
+
                 else:
-                    next(file)
-                while True:
-                    chunk = file.read(4000000)
-                    if not chunk: 
-                        break
-                    yield filesend_pb2.Route(payload=chunk)
+                    file = open("./content/data/"+str(start_date)+"-"+trafficode+".csv", 'rb')
+                    filefound= True
+                    if(firstflag==0):
+                        firstflag=1
+                    else:
+                        next(file)
+                    while True:
+                        chunk = file.read(4000000)
+                        if not chunk: 
+                            break
+                        yield filesend_pb2.Route(payload=chunk)
             except:
                 targetservers=ch.get_servers(str(start_date)+".csv")
-                filefound=False
                 for targetserver in targetservers:
                     print(targetserver,str(IPAddress)+":"+str(PortNumber))
                     if(filefound):
@@ -119,15 +137,20 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                             for response in responses:
                                 try:
                                     if(response.path=="none"):
-                                        print("calling other friends for",start_date)
+                                        pass
+                                        # print("calling other friends for",start_date)
                                     else:
+                                        filefound=True
                                         yield filesend_pb2.Route(payload=response.payload)
                                 except:
+                                    filefound=True
                                     yield filesend_pb2.Route(payload=response.payload)
                     except Exception as e:
                         print("wassi",e)
                 print("->-",start_date,targetservers)
                 print("file not available")
+            if(not filefound):
+                print("Not available in our cluster.ask other teams")
             start_date += delta
             continue
 
