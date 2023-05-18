@@ -147,7 +147,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                     try:
                         with grpc.insecure_channel(targetserver) as channel:
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
-                            responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+"::"), 'utf-8')))
+                            responses = stub.finalquery(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+"::"+trafficode), 'utf-8')))
                             for response in responses:
                                 try:
                                     if(response.path=="none"):
@@ -163,6 +163,21 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
                         pass
             if(not filefound):
                 print(colored("Not available in our cluster. Ask other teams", 'red'))
+                # calling other teams
+                children = zk.get_children('/available')
+                for child in children:
+                    if(child== PROXYIPAddress+":"+PROXYPortNumber):
+                        continue
+                    try:
+                        with grpc.insecure_channel(child) as channel:
+                            stub = filesend_pb2_grpc.RouteServiceStub(channel)
+                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+"::"), 'utf-8')))
+                            for response in responses:
+                                if(response.payload):
+                                    yield filesend_pb2.Route(payload=response.payload)
+                            # Close file
+                    except:
+                        pass
                 
             start_date += delta
             continue
@@ -252,6 +267,8 @@ ZooIPAddress=config['ZOOKEEPER']['IPAddress']
 ZooPortNumber=config['ZOOKEEPER']['PortNumber']
 IPAddress=config['SYSTEM']['IPAddress']
 PortNumber=config['SYSTEM']['PortNumber']
+PROXYIPAddress=config['PROXY']['IPAddress']
+PROXYPortNumber=config['PROXY']['PortNumber']
 # print(ZooIPAddress+":"+ZooPortNumber)
 
 
