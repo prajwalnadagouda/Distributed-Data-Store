@@ -100,6 +100,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             startdate=daterange[0].replace("/","-")
             enddate=daterange[0].replace("/","-")
             trafficode=daterange[2]
+        print("seeeeeee",trafficode)
         start_date=datetime.datetime.strptime(startdate,'%Y-%m-%d').date()
         end_date=datetime.datetime.strptime(enddate,'%Y-%m-%d').date()
         delta = datetime.timedelta(days=1)
@@ -164,21 +165,28 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             if(not filefound):
                 print(colored("Not available in our cluster. Ask other teams", 'red'))
                 # calling other teams
-                children = zk.get_children('/available')
+                zk = KazooClient(hosts='192.168.2.2:2181') #change it to the zookeeper address
+                zk.start()
+                children = zk.get_children("/servers/")
+                print("seee",(str(start_date).replace("-","/")+"::")+trafficode)
                 for child in children:
+                    # print(child)
                     if(child== PROXYIPAddress+":"+PROXYPortNumber):
                         continue
                     try:
                         with grpc.insecure_channel(child) as channel:
                             stub = filesend_pb2_grpc.RouteServiceStub(channel)
-                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+"::"), 'utf-8')))
+                            responses = stub.query(filesend_pb2.Route(id=1, origin =1,payload=bytes((str(start_date).replace("-","/")+":"+str(start_date).replace("-","/")+":"+trafficode), 'utf-8')))
                             for response in responses:
+                                print("->",response.payload)
                                 if(response.payload):
                                     yield filesend_pb2.Route(payload=response.payload)
-                            # Close file
+                                else:
+                                    print("nothing")
                     except:
+                        print("failed")
                         pass
-                
+            print("I am out of this")
             start_date += delta
             continue
 
@@ -195,6 +203,7 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             binary_file.write(i.payload)
         x=threading.Thread(target=file_ETL,args=() )
         x.start()
+        sendothers()
         return filesend_pb2.Route(id=1)
 
     #for intra team store
@@ -205,6 +214,35 @@ class RouteService(filesend_pb2_grpc.RouteServiceServicer):
             binary_file.write(eachrequest.payload)
         return filesend_pb2.Route(id=1)
 
+def filesplit(CONTENT_FILE_NAME):
+    file = open(CONTENT_FILE_NAME, 'rb')
+    while True:
+        chunk = file.read(4000000)
+        if not chunk: 
+            break
+        res= filesend_pb2.Route(payload=chunk)
+        yield res
+
+def sendothers():
+    zk = KazooClient(hosts='192.168.2.2:2181') #change it to the zookeeper address
+    zk.start()
+    children = zk.get_children("/servers/")
+    for child in children:
+        # print(child)
+        if(child== PROXYIPAddress+":"+PROXYPortNumber):
+            continue
+        try:
+            with grpc.insecure_channel(child) as channel:
+                stub = filesend_pb2_grpc.RouteServiceStub(channel)
+                tomovefiles=(glob("./content/moved/*.csv"))
+                for eachfile in tomovefiles:
+                    # CONTENT_FILE_NAME="./content/waste/Parking_Violations_Issued_-_Fiscal_Year_2014.csv" 
+                    pay=filesplit(eachfile)
+                    response= stub.upload(pay)
+                    print(response)
+        except:
+            pass
+    
 
 
 #helper for file_spread
